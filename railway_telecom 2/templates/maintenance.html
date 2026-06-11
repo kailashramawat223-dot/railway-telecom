@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Maintenance · Railway Telecom AMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 class="page-title"><i class="bi bi-tools me-2"></i>Maintenance Records</h2>
+    <p class="page-subtitle">Full maintenance history across all assets</p>
+  </div>
+</div>
+
+<div class="card-rail">
+  <div class="card-rail-body p-0">
+    {% if records %}
+    <div class="table-responsive">
+      <table class="table rail-table mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Asset</th>
+            <th>Type</th>
+            <th>Station</th>
+            <th>Engineer</th>
+            <th>Description</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+          <tr>
+            <td class="small text-muted">{{ r.maintenance_date }}</td>
+            <td>
+              <a href="{{ url_for('view_asset', asset_id=r.asset_id) }}" class="link-rail">
+                <span class="asset-id-badge">{{ r.asset_id }}</span>
+                <span class="ms-1">{{ r.asset_name }}</span>
+              </a>
+            </td>
+            <td><span class="type-chip small">{{ r.asset_type }}</span></td>
+            <td class="small"><i class="bi bi-geo-alt me-1 text-muted"></i>{{ r.station_name }}</td>
+            <td class="small fw-medium text-light-rail">{{ r.engineer_name }}</td>
+            <td class="small">{{ r.description[:80] }}{% if r.description|length > 80 %}…{% endif %}</td>
+            <td class="small text-muted">{{ r.remarks or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">Showing {{ records|length }} record{{ 's' if records|length!=1 }}</div>
+    {% else %}
+    <div class="empty-state py-5">
+      <i class="bi bi-tools" style="font-size:2.5rem"></i>
+      <p class="mt-2">No maintenance records yet</p>
+      <a href="{{ url_for('assets') }}" class="btn btn-primary-rail btn-sm mt-1">Go to Assets</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

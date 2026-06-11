@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% block title %}{{ asset.asset_name }} · Railway Telecom AMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 class="page-title"><i class="bi bi-cpu me-2"></i>{{ asset.asset_name }}</h2>
+    <p class="page-subtitle">Asset ID: {{ asset.asset_id }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('edit_asset', asset_id=asset.asset_id) }}" class="btn btn-rail-outline btn-sm">
+      <i class="bi bi-pencil me-1"></i>Edit
+    </a>
+    <a href="{{ url_for('assets') }}" class="btn btn-rail-outline btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Asset Info Card -->
+  <div class="col-lg-8">
+    <div class="card-rail mb-3">
+      <div class="card-rail-header">
+        <i class="bi bi-info-circle me-2"></i>Asset Information
+      </div>
+      <div class="card-rail-body">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div class="detail-field">
+              <div class="detail-label">Asset ID</div>
+              <div class="detail-value"><span class="asset-id-badge">{{ asset.asset_id }}</span></div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="detail-field">
+              <div class="detail-label">Asset Name</div>
+              <div class="detail-value fw-semibold">{{ asset.asset_name }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="detail-field">
+              <div class="detail-label">Asset Type</div>
+              <div class="detail-value">
+                <span class="type-chip">
+                  <i class="bi bi-{{ 'router' if asset.asset_type=='Router' else 'diagram-3' if asset.asset_type=='Switch' else 'broadcast' if asset.asset_type=='PA System' else 'battery-charging' if asset.asset_type=='Battery Bank' else 'ethernet' if asset.asset_type=='OFC Cable' else 'reception-4' }} me-1"></i>
+                  {{ asset.asset_type }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="detail-field">
+              <div class="detail-label">Station</div>
+              <div class="detail-value"><i class="bi bi-geo-alt me-1 text-muted"></i>{{ asset.station_name }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="detail-field">
+              <div class="detail-label">Installation Date</div>
+              <div class="detail-value">{{ asset.installation_date or '—' }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="detail-field">
+              <div class="detail-label">Current Status</div>
+              <div class="detail-value">
+                <span class="status-badge status-{{ asset.status|lower|replace(' ','_') }}">{{ asset.status }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="detail-field">
+              <div class="detail-label">Added On</div>
+              <div class="detail-value text-muted">{{ asset.created_at[:10] if asset.created_at else '—' }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="detail-field">
+              <div class="detail-label">Maintenance Records</div>
+              <div class="detail-value fw-semibold">{{ history|length }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Maintenance History -->
+    <div class="card-rail">
+      <div class="card-rail-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history me-2"></i>Maintenance History</span>
+        <button class="btn btn-primary-rail btn-sm" data-bs-toggle="modal" data-bs-target="#maintModal">
+          <i class="bi bi-plus me-1"></i>Add Record
+        </button>
+      </div>
+      <div class="card-rail-body p-0">
+        {% if history %}
+          {% for m in history %}
+          <div class="maint-record">
+            <div class="maint-header">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-wrench-adjustable text-accent"></i>
+                <strong>{{ m.engineer_name }}</strong>
+              </div>
+              <span class="maint-date">{{ m.maintenance_date }}</span>
+            </div>
+            <div class="maint-desc">{{ m.description }}</div>
+            {% if m.remarks %}
+              <div class="maint-remarks"><i class="bi bi-chat-left-text me-1"></i>{{ m.remarks }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state py-4">
+            <i class="bi bi-tools" style="font-size:2rem"></i>
+            <p class="mt-2">No maintenance records yet</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Code Card -->
+  <div class="col-lg-4">
+    <div class="card-rail mb-3">
+      <div class="card-rail-header">
+        <i class="bi bi-qr-code me-2"></i>QR Code
+      </div>
+      <div class="card-rail-body text-center">
+        {% if asset.qr_path %}
+          <div class="qr-wrapper">
+            <img src="{{ url_for('qr_image', filename=asset.qr_path) }}"
+                 alt="QR Code" class="qr-img">
+          </div>
+          <div class="qr-data-display mt-2">/asset/{{ asset.asset_id }}</div>
+          <p class="text-muted small mt-1">Scan to access this asset record</p>
+          <a href="{{ url_for('qr_image', filename=asset.qr_path) }}" download
+             class="btn btn-rail-outline btn-sm mt-2">
+            <i class="bi bi-download me-1"></i>Download QR
+          </a>
+        {% else %}
+          <div class="empty-state py-3">
+            <i class="bi bi-qr-code" style="font-size:2rem"></i>
+            <p class="mt-2">QR code not available</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Quick Status Update -->
+    <div class="card-rail">
+      <div class="card-rail-header">
+        <i class="bi bi-toggle-on me-2"></i>Quick Status Update
+      </div>
+      <div class="card-rail-body">
+        <form action="{{ url_for('edit_asset', asset_id=asset.asset_id) }}" method="POST">
+          <input type="hidden" name="asset_name"        value="{{ asset.asset_name }}">
+          <input type="hidden" name="asset_type"        value="{{ asset.asset_type }}">
+          <input type="hidden" name="station_name"      value="{{ asset.station_name }}">
+          <input type="hidden" name="installation_date" value="{{ asset.installation_date or '' }}">
+          <select name="status" class="form-select rail-input form-select-sm mb-2">
+            {% for s in ['Working','Faulty','Under Maintenance'] %}
+              <option {% if asset.status==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-primary-rail btn-sm w-100">Update Status</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Maintenance Modal -->
+<div class="modal fade" id="maintModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-rail">
+      <div class="modal-header border-0">
+        <h5 class="modal-title"><i class="bi bi-tools me-2"></i>Add Maintenance Record</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_maintenance', asset_id=asset.asset_id) }}">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label-rail">Maintenance Date <span class="text-danger">*</span></label>
+              <input type="date" name="maintenance_date" class="form-control rail-input" required
+                     value="{{ now[:10] if now else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-rail">Engineer Name <span class="text-danger">*</span></label>
+              <input type="text" name="engineer_name" class="form-control rail-input"
+                     placeholder="Engineer name" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label-rail">Description <span class="text-danger">*</span></label>
+              <textarea name="description" class="form-control rail-input" rows="3"
+                        placeholder="Describe the maintenance work done…" required></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label-rail">Remarks</label>
+              <input type="text" name="remarks" class="form-control rail-input"
+                     placeholder="Optional additional remarks">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-rail-outline btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary-rail btn-sm">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Pre-set today's date in modal
+document.addEventListener('DOMContentLoaded', () => {
+  const d = document.querySelector('[name=maintenance_date]');
+  if (d && !d.value) d.value = new Date().toISOString().split('T')[0];
+});
+</script>
+{% endblock %}

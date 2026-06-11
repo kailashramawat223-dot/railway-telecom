@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Assets · Railway Telecom AMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 class="page-title"><i class="bi bi-cpu me-2"></i>Asset Inventory</h2>
+    <p class="page-subtitle">All telecom assets across railway stations</p>
+  </div>
+  <a href="{{ url_for('add_asset') }}" class="btn btn-primary-rail btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Add Asset
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="card-rail mb-3">
+  <div class="card-rail-body">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label-sm">Search</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text rail-ig-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="search" class="form-control rail-input" placeholder="Asset ID, name, or station…" value="{{ search }}">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label-sm">Station</label>
+        <select name="station" class="form-select form-select-sm rail-input">
+          <option value="">All Stations</option>
+          {% for s in stations %}
+            <option value="{{ s.station_name }}" {% if s.station_name==sel_station %}selected{% endif %}>{{ s.station_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label-sm">Status</label>
+        <select name="status" class="form-select form-select-sm rail-input">
+          <option value="">All</option>
+          <option value="Working"          {% if sel_status=='Working' %}selected{% endif %}>Working</option>
+          <option value="Faulty"           {% if sel_status=='Faulty' %}selected{% endif %}>Faulty</option>
+          <option value="Under Maintenance" {% if sel_status=='Under Maintenance' %}selected{% endif %}>Under Maintenance</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary-rail btn-sm flex-fill">Filter</button>
+        <a href="{{ url_for('assets') }}" class="btn btn-rail-outline btn-sm">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card-rail">
+  <div class="card-rail-body p-0">
+    {% if assets %}
+    <div class="table-responsive">
+      <table class="table rail-table mb-0">
+        <thead>
+          <tr>
+            <th>Asset ID</th>
+            <th>Asset Name</th>
+            <th>Type</th>
+            <th>Station</th>
+            <th>Installed</th>
+            <th>Status</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in assets %}
+          <tr>
+            <td><span class="asset-id-badge">{{ a.asset_id }}</span></td>
+            <td class="fw-medium text-light-rail">{{ a.asset_name }}</td>
+            <td>
+              <span class="type-chip">
+                <i class="bi bi-{{ 'router' if a.asset_type=='Router' else 'diagram-3' if a.asset_type=='Switch' else 'broadcast' if a.asset_type=='PA System' else 'battery-charging' if a.asset_type=='Battery Bank' else 'ethernet' if a.asset_type=='OFC Cable' else 'reception-4' }} me-1"></i>
+                {{ a.asset_type }}
+              </span>
+            </td>
+            <td><i class="bi bi-geo-alt me-1 text-muted"></i>{{ a.station_name }}</td>
+            <td class="text-muted small">{{ a.installation_date or '—' }}</td>
+            <td><span class="status-badge status-{{ a.status|lower|replace(' ','_') }}">{{ a.status }}</span></td>
+            <td class="text-center">
+              <div class="d-flex gap-1 justify-content-center">
+                <a href="{{ url_for('view_asset', asset_id=a.asset_id) }}" class="btn-action btn-view" title="View"><i class="bi bi-eye"></i></a>
+                <a href="{{ url_for('edit_asset', asset_id=a.asset_id) }}" class="btn-action btn-edit" title="Edit"><i class="bi bi-pencil"></i></a>
+                <button class="btn-action btn-del" title="Delete"
+                        onclick="confirmDelete('{{ a.asset_id }}','{{ a.asset_name }}')">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      Showing <strong>{{ assets|length }}</strong> asset{{ 's' if assets|length != 1 }}
+    </div>
+    {% else %}
+    <div class="empty-state py-5">
+      <i class="bi bi-inbox" style="font-size:2.5rem"></i>
+      <p class="mt-2 mb-1">No assets found</p>
+      <a href="{{ url_for('add_asset') }}" class="btn btn-primary-rail btn-sm mt-1">Add first asset</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal fade" id="delModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-rail">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-danger"><i class="bi bi-trash me-2"></i>Delete Asset</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong id="delName"></strong>?</p>
+        <p class="text-muted small">This will also delete all maintenance records for this asset.</p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-rail-outline btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <form id="delForm" method="POST">
+          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete(id, name) {
+  document.getElementById('delName').textContent = name;
+  document.getElementById('delForm').action = '/assets/delete/' + id;
+  new bootstrap.Modal(document.getElementById('delModal')).show();
+}
+</script>
+{% endblock %}

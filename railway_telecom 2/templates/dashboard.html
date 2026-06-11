@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard · Railway Telecom AMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 class="page-title"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
+    <p class="page-subtitle">Real-time overview of telecom assets across all stations</p>
+  </div>
+  <div class="d-flex gap-2">
+    <span class="badge-live"><span class="dot-live"></span>Live</span>
+    <a href="{{ url_for('add_asset') }}" class="btn btn-primary-rail btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Add Asset
+    </a>
+  </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card stat-total">
+      <div class="stat-icon"><i class="bi bi-cpu-fill"></i></div>
+      <div class="stat-body">
+        <div class="stat-number" id="s-total">{{ stats.total }}</div>
+        <div class="stat-label">Total Assets</div>
+      </div>
+      <div class="stat-bar" style="width:100%"></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card stat-working">
+      <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+      <div class="stat-body">
+        <div class="stat-number" id="s-working">{{ stats.working }}</div>
+        <div class="stat-label">Working</div>
+      </div>
+      {% if stats.total > 0 %}
+      <div class="stat-bar" style="width:{{ (stats.working/stats.total*100)|int }}%"></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card stat-faulty">
+      <div class="stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <div class="stat-body">
+        <div class="stat-number" id="s-faulty">{{ stats.faulty }}</div>
+        <div class="stat-label">Faulty</div>
+      </div>
+      {% if stats.total > 0 %}
+      <div class="stat-bar" style="width:{{ (stats.faulty/stats.total*100)|int }}%"></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card stat-maint">
+      <div class="stat-icon"><i class="bi bi-tools"></i></div>
+      <div class="stat-body">
+        <div class="stat-number" id="s-maint">{{ stats.maintenance }}</div>
+        <div class="stat-label">Under Maintenance</div>
+      </div>
+      {% if stats.total > 0 %}
+      <div class="stat-bar" style="width:{{ (stats.maintenance/stats.total*100)|int }}%"></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-5">
+    <div class="card-rail h-100">
+      <div class="card-rail-header">
+        <i class="bi bi-pie-chart-fill me-2"></i>Asset Status
+      </div>
+      <div class="card-rail-body d-flex align-items-center justify-content-center" style="min-height:220px">
+        <canvas id="statusChart" style="max-height:200px"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card-rail h-100">
+      <div class="card-rail-header">
+        <i class="bi bi-bar-chart-fill me-2"></i>Asset Type Distribution
+      </div>
+      <div class="card-rail-body" style="min-height:220px">
+        <canvas id="typeChart" style="max-height:200px"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Station Chart -->
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="card-rail">
+      <div class="card-rail-header">
+        <i class="bi bi-geo-alt-fill me-2"></i>Assets by Station
+      </div>
+      <div class="card-rail-body">
+        <canvas id="stnChart" style="max-height:220px"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Row: Recent Maintenance + New Assets -->
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card-rail h-100">
+      <div class="card-rail-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history me-2"></i>Recent Maintenance</span>
+        <a href="{{ url_for('maintenance') }}" class="btn-link-rail">View all</a>
+      </div>
+      <div class="card-rail-body p-0">
+        {% if recent %}
+          <div class="activity-list">
+            {% for r in recent %}
+            <div class="activity-item">
+              <div class="activity-icon"><i class="bi bi-wrench"></i></div>
+              <div class="activity-detail">
+                <div class="activity-name">{{ r.asset_name }}</div>
+                <div class="activity-meta">{{ r.station_name }} · {{ r.engineer_name }}</div>
+              </div>
+              <div class="activity-date">{{ r.maintenance_date }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state py-4"><i class="bi bi-inbox"></i><p>No maintenance records yet</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card-rail h-100">
+      <div class="card-rail-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-plus-circle me-2"></i>Recently Added</span>
+        <a href="{{ url_for('assets') }}" class="btn-link-rail">View all</a>
+      </div>
+      <div class="card-rail-body p-0">
+        {% if new_assets %}
+          <div class="activity-list">
+            {% for a in new_assets %}
+            <div class="activity-item">
+              <div class="activity-icon type-icon-{{ a.asset_type|lower|replace(' ','_') }}">
+                <i class="bi bi-{{ 'router' if a.asset_type=='Router' else 'diagram-3' if a.asset_type=='Switch' else 'broadcast' if a.asset_type=='PA System' else 'battery-charging' if a.asset_type=='Battery Bank' else 'ethernet' if a.asset_type=='OFC Cable' else 'reception-4' }}"></i>
+              </div>
+              <div class="activity-detail">
+                <div class="activity-name">{{ a.asset_name }}</div>
+                <div class="activity-meta">{{ a.asset_type }} · {{ a.station_name }}</div>
+              </div>
+              <span class="status-badge status-{{ a.status|lower|replace(' ','_') }}">{{ a.status }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state py-4"><i class="bi bi-inbox"></i><p>No assets added yet</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const COLORS = {
+  working: '#22c55e',
+  faulty: '#ef4444',
+  maint: '#f59e0b',
+  types: ['#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#ef4444','#10b981'],
+  stations: ['#1e40af','#1d4ed8','#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#dbeafe']
+};
+
+// Status donut
+new Chart(document.getElementById('statusChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Working','Faulty','Under Maintenance'],
+    datasets: [{ data: [{{ stats.working }},{{ stats.faulty }},{{ stats.maintenance }}],
+      backgroundColor: [COLORS.working, COLORS.faulty, COLORS.maint],
+      borderWidth: 3, borderColor: '#0f1a35', hoverOffset: 6 }]
+  },
+  options: { plugins: { legend: { position:'bottom', labels:{ color:'#94a3b8', font:{size:12}, padding:12 }}},
+    cutout:'65%', maintainAspectRatio: true }
+});
+
+// Type bar
+new Chart(document.getElementById('typeChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ type_labels|tojson }},
+    datasets: [{ label:'Assets', data: {{ type_counts|tojson }},
+      backgroundColor: COLORS.types, borderRadius: 6, borderSkipped: false }]
+  },
+  options: { plugins:{ legend:{display:false} }, scales:{
+    x:{ ticks:{color:'#94a3b8'}, grid:{color:'#1e2d4d'} },
+    y:{ ticks:{color:'#94a3b8', stepSize:1}, grid:{color:'#1e2d4d'} }
+  }, maintainAspectRatio: false }
+});
+
+// Station bar
+new Chart(document.getElementById('stnChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ stn_labels|tojson }},
+    datasets: [{ label:'Assets', data: {{ stn_counts|tojson }},
+      backgroundColor: COLORS.stations, borderRadius: 6, borderSkipped: false }]
+  },
+  options: { indexAxis:'y', plugins:{ legend:{display:false} }, scales:{
+    x:{ ticks:{color:'#94a3b8', stepSize:1}, grid:{color:'#1e2d4d'} },
+    y:{ ticks:{color:'#94a3b8'}, grid:{display:false} }
+  }, maintainAspectRatio: false }
+});
+</script>
+{% endblock %}

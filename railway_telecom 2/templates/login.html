@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login · Railway Telecom AMS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body class="login-body">
+
+<div class="login-bg">
+  <!-- Animated track lines -->
+  <div class="track-line tl1"></div>
+  <div class="track-line tl2"></div>
+  <div class="track-line tl3"></div>
+</div>
+
+<div class="login-container">
+  <div class="login-card">
+    <!-- Header -->
+    <div class="login-header">
+      <div class="login-logo">
+        <i class="bi bi-train-front-fill"></i>
+      </div>
+      <h1 class="login-title">Railway Telecom</h1>
+      <p class="login-subtitle">Asset Management System</p>
+      <div class="login-divider"></div>
+      <p class="login-org">Ministry of Railways · Telecom Department</p>
+    </div>
+
+    <!-- Alerts -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }} py-2 px-3 mb-3 small">
+            <i class="bi bi-exclamation-triangle me-1"></i>{{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Form -->
+    <form method="POST" action="{{ url_for('login') }}">
+      <div class="mb-3">
+        <label class="form-label login-label">Username</label>
+        <div class="input-group">
+          <span class="input-group-text login-input-icon"><i class="bi bi-person"></i></span>
+          <input type="text" name="username" class="form-control login-input"
+                 placeholder="Enter username" required autofocus>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label login-label">Password</label>
+        <div class="input-group">
+          <span class="input-group-text login-input-icon"><i class="bi bi-lock"></i></span>
+          <input type="password" name="password" class="form-control login-input"
+                 placeholder="Enter password" required id="pwdField">
+          <button type="button" class="input-group-text login-input-icon border-start-0"
+                  onclick="togglePwd()" title="Show/hide password">
+            <i class="bi bi-eye" id="eyeIcon"></i>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-login w-100">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+      </button>
+    </form>
+
+    <div class="login-hint">
+      <i class="bi bi-info-circle me-1"></i>
+      Default: <strong>admin</strong> / <strong>admin123</strong>
+    </div>
+  </div>
+
+  <div class="login-footer">
+    <span>© 2024 Indian Railways · Telecom Department</span>
+  </div>
+</div>
+
+<script>
+function togglePwd() {
+  const f = document.getElementById('pwdField');
+  const i = document.getElementById('eyeIcon');
+  if (f.type === 'password') { f.type = 'text'; i.className = 'bi bi-eye-slash'; }
+  else { f.type = 'password'; i.className = 'bi bi-eye'; }
+}
+</script>
+</body>
+</html>
